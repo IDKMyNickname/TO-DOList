@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 
+
 using namespace std;
 
 HANDLE hOUTPUT = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -20,49 +21,37 @@ HANDLE hOUTPUT = GetStdHandle(STD_OUTPUT_HANDLE);
 
 //}
 
-int checkNotifycation() {
-    ifstream notifyList("notifycations.d");
-    if (notifyList.fail()) {
-        return 1;
-    }
-    else {
-        return 2;
-    }
+int aBug = 1;
 
-    notifyList.close();
-}
-
-void showNotifys() {
+void showNotifis() {
 
     //setlocale(LC_ALL, "Russian");
-    string notifys;
+    string notifis;
 
-    ifstream notifyList("notifycations.d");
+    ifstream notifiList("notifications.txt");
     
-    while (getline(notifyList, notifys)) { 
-        notifys = notifys + "\n";
-        cout << notifys << endl;
+    while (getline(notifiList, notifis)) { 
+        notifis = notifis + "\n";//
+        cout << notifis << endl;
     }
-
-    notifyList.close();
+    //Пройтись по всем строкам и вывести все напоминания которые есть
+    notifiList.close();
 
 }
 
 string getTime() {
-    //time
+    //Тут локально берём время с компьтера
     auto start = std::chrono::system_clock::now();
-    // Some computation here
     auto end = std::chrono::system_clock::now();
 
     std::chrono::duration<double> elapsed_seconds = end - start;
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
     string timeStr = std::ctime(&end_time);
-    //strReturn
     return timeStr;
 }
 
 string getDate() {
-    //Date
+    //Тут локально берём дату с компьютера
     const time_t tm = time(nullptr);
 
     char buf[64];
@@ -72,30 +61,48 @@ string getDate() {
 
 }
 
+void sendNotifi(string nameNotifiNow) {
+    nameNotifiNow = nameNotifiNow.substr(0, nameNotifiNow.length() - 12); //Обрезать только до названия напоминания
+
+    LPCSTR toSend = nameNotifiNow.c_str(); //Переформатировать строку в особый формат
+    MessageBoxA(NULL, toSend, "TO-DO List", MB_OK); //Вывести сообщения на экран
+}
+
+void clearTxt(int strToDel) {
+    ifstream file_in("notifications.txt");
+    int schetNow = 0;
+    string generateFile;
+    string strNow;
+    while (getline(file_in, strNow)) {
+        schetNow++; //Прибавляем один к текущей строке чтобы знать какая сейчас строка
+        if (schetNow != strToDel) {
+            generateFile = generateFile + strNow + "\n"; //Добавить строку сейчас ко всем
+        }
+    }
+    file_in.close();
+    remove("notifications.txt"); //Удалим файл для его очитски >З
+    ofstream out_of("notifications.txt");
+    out_of << generateFile;
+    out_of.close();
+}
+
+
+
 void timeOperation() {
-    char ch;
-    int code;
-    bool ruProgramm = true;
     while (true)
     {
-        //ch = _getch();
-        //code = static_cast<int>(ch);
-       // if (ch == 27 | ch = ) // если клавиша esc
-       //     cout << ch;
-       //     ruProgramm = false;//Выход из прогр
-
         vector<string> times; //Создать массив
 
         //Положить в массив время, в которое
 
-        string notifys;
+        string notifis;
 
-        ifstream notifyList("notifycations.d");
+        ifstream notifiList("notifications.txt");
 
-        while (getline(notifyList, notifys)) {
-            times.push_back(notifys); //Добавить дату и время напоминания
+        while (getline(notifiList, notifis)) {
+            times.push_back(notifis); //Добавить дату и время напоминания
         }
-        notifyList.close();
+        notifiList.close();
         string gdNow = getDate();
         
         string timeNow = getTime();
@@ -104,121 +111,135 @@ void timeOperation() {
         string timeN = timeNow.substr(timeNow.length() - 14, 15);
         
         string hasTwo = timeN.substr(0, 5);
-        cout << hasTwo << endl; //19:14
-        cout << gdNow << endl; // 14.01
         
         string dtTimeNow = gdNow + " " + hasTwo; //Строка с временем и датой для сравнения
 
-        //cout << dtTimeNow << " - Сгенерированое время сейчас" << endl; //Строка с временем и датой для сравнения
+        int a = 0;
         
-        for (int i = 0; i <= size(times)-1; i++) {
-            cout << size(times) << " - mass" << endl;
-            string nowTimesAndVr = times[i];
-            nowTimesAndVr = nowTimesAndVr.substr(nowTimesAndVr.length() - 11, nowTimesAndVr.length());
-            cout << nowTimesAndVr << " - timeDateRasp" << endl;
-            cout << dtTimeNow << " - dateTimeNow" << endl;
-            if (dtTimeNow == nowTimesAndVr) {
-                cout << "URA TUTA MUSIC BYDET!!" << endl;
-                exit(0);
-            }
-            Sleep(2000);
+        if (size(times) == 0) { //Если массив со временм пуст, завершаем т.к. проверять нечего
+            break;
         }
 
-        cout << "end" << endl;
+        for (int i = 0; i <= size(times)-1; i++) {
+
+            string nowTimesAndVr = times[i];
+            string nameNotifiNow = nowTimesAndVr; //Дублируем переменную для отделения названия в случае надобности
+            nowTimesAndVr = nowTimesAndVr.substr(nowTimesAndVr.length() - 11, nowTimesAndVr.length());
+
+            if (dtTimeNow == nowTimesAndVr) { //Если строки совпали
+                clearTxt(i+1);//Очищаем файл от сработовшего напоминания
+                sendNotifi(nameNotifiNow); //Уведомляем пользователя о нём
+                a = 1; //Ставим флажок что программа сработала
+                break;
+                
+            }
+        }
+        if (a == 1) {
+            break;
+        }
+        system("cls");//Очищаем консоль
     }
+        
 
     
 }
 
-void deleteNotifi() {
-    string notifys;
-    int strr = 1;
-    ifstream notifyList("notifycations.d");
 
-    while (getline(notifyList, notifys)) {
-        cout << strr << " - " << notifys << endl;
+void deleteNotifi() {
+    string notifis;
+    int strr = 1;
+    ifstream file_in("notifications.txt");
+
+    cout << "Введите цифру вначале строки напоминнания, которого вы хотиту удалить\n" << endl;
+
+    while (getline(file_in, notifis)) {
+        cout << strr << " - " << notifis << endl;
+        strr++;
     }
 
     int numberSToDelete;
+    cout << "Какую строку вы хотите удалить(введите цифру): ";
     cin >> numberSToDelete;
 
-    notifyList.close();
+    string fileGenerate = "";
+    string notNow;
+    int strNow = 0;
+    while (getline(file_in, notNow)) {
+        strNow++;
+        if (numberSToDelete != strNow) { //Если строка не та, которая введена пользователем, добавляем его в список, чтобы занести
+            fileGenerate = fileGenerate + notNow + "\n";
+        }
 
+    }
+
+    file_in.close();
+    clearTxt(numberSToDelete);
+    
+    system("cls");
 }
 
-void createNotify(string nameNotify, string date, string time) {
-    ofstream notificatioList("notifycations.d", ios::app);
+void createNotifi(string nameNotifi, string date, string time) {
+    ofstream notificatioList("notifications.txt", ios::app); //Открываем на дозапись
 
-    notificatioList << nameNotify + " " + date + " " + time << endl;
+    notificatioList << nameNotifi + " " + date + " " + time << endl; //Записываем
 
     notificatioList.close();
+
+    system("cls");
 }
 
-
-void playMusic() {
-    //Тут музыка
-}
 
 int main()
 {
     system("title TO-DOᅠList");
-    //SetConsoleCP(1251);
-    //SetConsoleOutputCP(1251);
-    //setlocale(LC_ALL, "Russian");
+
     setlocale(LC_ALL, "Russian_Russia.1251");
-    //timeOperation();
+
     cout << "Добро пожаловать в программу вновь!" << endl;
     cout << "Следующие напоминание: \n\n";
-    showNotifys();
+    showNotifis();
         
     
      
     bool runProgram = true;
     while (runProgram) {
 
-        cout << "Следующие напоминание: \n\n";
-        //showNotifys();
-        //timeOperation();
 
         cout << "\nВыберите один из предложенных вариантов: \n";
         cout << "1 - Добавить напоминание" << endl;
         cout << "2 - Удалить напомиание" << endl;
+        cout << "3 - Активировать напоминание" << endl;
         int command;
         cin >> command;
         
         if (command == 1) {
-            cout << "Enter name of Notification: ";
-            string nN;
-            cin >> nN;
-            cout << "Enter date of notification(DD/MM): ";
+            cout << "Введите имя напоминания: ";
+            cin.ignore(7777, '\n');
+            //string nN;
+            char nN[100]; //Делаем так, т.к. cin с пробелом не работает
+            cin.getline(nN, sizeof(nN));
+            cout << "Введите дату напоминания(ДД/MM): ";
             string dt;
             cin >> dt;
-            cout << "Enter time of notification: ";
+            cout << "Введите время напоминания: ";
             string timeN;
             cin >> timeN;
             //cout << "Введите за сколько вам напомнить про это напоминание?(Если не надо введите 0, воодить в часах): ";
             //int nnnm;
             //cin >> nnnm;
 
-            createNotify(nN, dt, timeN);
+            createNotifi(nN, dt, timeN); //создать напоминание
         }
         else if (command == 2) {
-            deleteNotifi();
+            deleteNotifi(); //Удалить напоминание
         }
         else if (command == 3) {
-            timeOperation();
+            timeOperation(); //Включить режим ожидания
+        }
+        else {
+            cout << "Такой команды не бывает!" << endl;
         }
     }
 
 
-
-
-    //HANDLE hOUTPUT = GetStdHandle(STD_OUTPUT_HANDLE);
-    //SetConsoleTextAttribute(hOUTPUT, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-    //cout << "GREEN TEXT\n";
-    //SetConsoleTextAttribute(hOUTPUT, FOREGROUND_RED | FOREGROUND_INTENSITY);
-    //cout << "RED TEXT\n";
-    //SetConsoleTextAttribute(hOUTPUT, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-    //cout << "sad";
-    //return 0;
 }
